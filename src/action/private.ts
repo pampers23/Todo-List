@@ -22,6 +22,7 @@ export async function addTodos({ todo }: { todo: string }) {
 
 export async function getTodos() {
   try {
+    console.log("Fetching todos"); // ✅ Debug
     const { data, error } = await supabase
       .from("todos")
       .select("*")
@@ -38,13 +39,14 @@ export async function getTodos() {
   }
 }
 
-export async function updateTodo(id: string, completed: boolean) {
+export async function updateTodo(id: string, updates: { completed?: boolean; todo?: string; update_at?: string }) {
   try {
+
     const { data, error } = await supabase
       .from("todos")
-      .update(completed)
+      .update(updates)
       .eq("id", id)
-      .select("*");
+      .select("todo, completed, update_at");
 
     if (error) {
       throw error;

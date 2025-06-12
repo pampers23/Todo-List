@@ -23,7 +23,12 @@ const TodoList = () => {
   const { mutateAsync: addTodoMutation } = useMutation({
     mutationFn: addTodos,
     onSuccess: () => {
+      console.log("Todo updated — invalidating query");
       queryClient.invalidateQueries({ queryKey: ["todos"] })
+    },
+    onError: (error) => {
+      console.error("Error adding todo:", error);
+      toast.error("Failed to add todo. Please try again.");
     }
   })
 
@@ -34,7 +39,7 @@ const TodoList = () => {
 
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <div className="text-center">Loading...</div>
   }
 
   return (
@@ -56,6 +61,7 @@ const TodoList = () => {
               onClick={async () => {
                 try {
                   await addTodoMutation({ todo });
+                  setTodo("")
                   toast.success("Added")
                 } catch (error) {
                   console.log(error);

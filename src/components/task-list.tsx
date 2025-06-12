@@ -18,15 +18,15 @@ const TaskList = ({ Todos }: TaskListProps) => {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState("")
 
-
   // update to do
-  const updateMutation = useMutation({
-    mutationFn: async (payload: { id: string; completed?: boolean; text?: string } ) => {
-      return await updateTodo(payload.id, payload.completed ?? false)
-    },
+  const { mutateAsync: updateTodoMutation } = useMutation({
+    mutationFn: ({ id, todo, completed }: { id: string; todo?: string; completed: boolean }) =>
+      updateTodo(id, {completed, todo}),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [ "todos" ]})
-      setEditingId(null)
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+    onError: (error) => {
+      console.error("Error updating todo:", error);
     }
   });
 
@@ -37,6 +37,9 @@ const TaskList = ({ Todos }: TaskListProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ "todos" ]})
+    },
+    onError: (error) => {
+      console.error("Error deleting todo:", error);
     }
   });
 
@@ -45,12 +48,23 @@ const TaskList = ({ Todos }: TaskListProps) => {
     setEditText(todo.todo)
   }
 
-  const handleSave = (todo: Todos) => {
-    updateMutation.mutate({ id: todo.id, text: editText })
-  }
+  const handleSave = async (todo: Todos) => {
+    try {
+      await updateTodoMutation({
+        id: todo.id,
+        completed: todo.completed,
+        todo: todo.todo === editText ? undefined : editText,
+      });
+
+      setEditingId(null);
+      setEditText("");
+    } catch (err) {
+      console.error("Failed to update todo", err);
+    }
+  };
 
   const handleToggleCompleted = (todo: Todos)=> {
-    updateMutation.mutate({ id: todo.id, completed: !todo.completed })
+    updateTodoMutation({ id: todo.id, completed: !todo.completed })
   }
 
   const handleDelete = (id: string) => {
@@ -64,7 +78,9 @@ const TaskList = ({ Todos }: TaskListProps) => {
         <li key={todo.id} className="flex items-center justify-between p-3 bg-background rounded-md border">
           <div className="flex items-center space-x-3 flex-1">
             <Checkbox
-              onCheckedChange={() => handleToggleCompleted(todo)}
+              onCheckedChange={() => {
+                handleToggleCompleted(todo)
+              }}
               id={`task-${todo.id}`}
               checked={todo.completed}
               className="cursor-pointer"
@@ -81,16 +97,16 @@ const TaskList = ({ Todos }: TaskListProps) => {
                   onClick={() => handleSave(todo)}
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-green-600 hover:text-green-700"
+                  className="h-8 w-8 text-green-600 hover:text-green-700 cursor-pointer"
                 >
-                  <Check className="h-4 w-4" />
+                  <Check className=" h-4 w-4" />
                   <span className="sr-only">Save edit</span>
                 </Button>
                 <Button
                   onClick={() => setEditingId(null)}
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-red-600 hover:text-red-700"
+                  className="cursor-pointer h-8 w-8 text-red-600 hover:text-red-700"
                 >
                   <X className="h-4 w-4" />
                   <span className="sr-only">Cancel edit</span>
